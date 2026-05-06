@@ -43,14 +43,19 @@ function getToken(): string {
 
 export async function sendSms(params: SendSmsParams): Promise<SmsApiResponse> {
   const token = getToken()
-  const senderName = params.from || process.env.SMSAPI_SENDER || 'Test'
+  const senderName = params.from || process.env.SMSAPI_SENDER || ''
 
-  const body = new URLSearchParams({
+  const bodyParams: Record<string, string> = {
     to: params.to,
     message: params.message,
-    from: senderName,
     format: 'json',
-  })
+  }
+  // Only add 'from' if we have a verified sender name
+  if (senderName && senderName !== 'Test') {
+    bodyParams.from = senderName
+  }
+
+  const body = new URLSearchParams(bodyParams)
 
   try {
     const response = await fetch(`${SMSAPI_BASE_URL}/sms.do`, {

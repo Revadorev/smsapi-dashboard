@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       .insert({
         phone_number: normalizedPhone,
         message: message.trim(),
-        sender_name: sender || process.env.SMSAPI_SENDER || 'Test',
+        sender_name: (sender && sender !== 'Test') ? sender : (process.env.SMSAPI_SENDER && process.env.SMSAPI_SENDER !== 'Test' ? process.env.SMSAPI_SENDER : 'default'),
         status: 'PENDING',
       })
       .select()
