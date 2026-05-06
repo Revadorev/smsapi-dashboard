@@ -91,6 +91,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'SMS trimis cu succes!',
       data: result.data,
+      log_id: logEntry?.id ?? null,
+      smsapi_id: result.data?.list?.[0]?.id ?? null,
     })
   } catch (err: unknown) {
     console.error('Send SMS error:', err)

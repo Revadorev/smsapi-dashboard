@@ -13,10 +13,20 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
   const [logs, setLogs] = useState<SmsLog[]>(initialLogs)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [refreshInfo, setRefreshInfo] = useState<string | null>(null)
 
   async function refresh() {
     setLoading(true)
+    setRefreshInfo(null)
     try {
+      // 1. Actualizeaza statusurile QUEUE din SMSAPI
+      const statusRes = await fetch('/api/refresh-status', { method: 'POST' })
+      const statusData = await statusRes.json()
+      if (statusData.updated > 0) {
+        setRefreshInfo(`${statusData.updated} status${statusData.updated > 1 ? 'uri' : ''} actualizat${statusData.updated > 1 ? 'e' : ''}`)
+      }
+
+      // 2. Reincarca logurile
       const res = await fetch('/api/logs?limit=50')
       const data = await res.json()
       if (data.data) setLogs(data.data)
@@ -51,14 +61,21 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
               <p className="text-xs text-slate-400">{logs.length} mesaje înregistrate</p>
             </div>
           </div>
-          <button
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Actualizează
-          </button>
+          <div className="flex items-center gap-3">
+            {refreshInfo && (
+              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                ✓ {refreshInfo}
+              </span>
+            )}
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Actualizează
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -81,7 +98,9 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
             <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <p className="text-slate-500 font-medium">Niciun SMS înregistrat</p>
             <p className="text-slate-400 text-sm mt-1">
-              {search ? 'Niciun rezultat pentru căutarea dvs.' : 'Trimiteți primul SMS din formularul alăturat.'}
+              {search
+                ? 'Niciun rezultat pentru căutarea dvs.'
+                : 'Trimiteți primul SMS din formularul alăturat.'}
             </p>
           </div>
         ) : (
@@ -112,9 +131,6 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
                     <span className="font-mono text-xs font-medium text-slate-700">
                       {formatPhone(log.phone_number)}
                     </span>
-                    {log.sender_name && log.sender_name !== 'Test' && (
-                      <span className="block text-xs text-slate-400">via {log.sender_name}</span>
-                    )}
                   </td>
                   <td className="px-4 py-3 max-w-xs">
                     <p className="text-slate-700 truncate" title={log.message}>

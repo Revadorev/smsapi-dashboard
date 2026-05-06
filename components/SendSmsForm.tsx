@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Send, Phone, MessageSquare, ChevronDown, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Send, Phone, MessageSquare, ChevronDown, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { SmsTemplate } from '@/lib/supabase'
 
 interface Props {
@@ -13,16 +13,15 @@ const MAX_CHARS = 160
 export default function SendSmsForm({ templates }: Props) {
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
-  const [sender, setSender] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [showTemplates, setShowTemplates] = useState(false)
   const templateRef = useRef<HTMLDivElement>(null)
 
   const charCount = message.length
-  const parts = charCount === 0 ? 0 : Math.ceil(charCount / MAX_CHARS)
   const isSpecial = /[^\x00-\x7F@£$¥èéùìòÇØøÅå_^{}\[\]~|ÆæßÉ]/.test(message)
   const effectiveMax = isSpecial ? 70 : 160
+  const parts = charCount === 0 ? 1 : Math.ceil(charCount / effectiveMax)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -42,15 +41,14 @@ export default function SendSmsForm({ templates }: Props) {
       const res = await fetch('/api/send-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim(), message: message.trim(), sender: sender.trim() || undefined }),
+        body: JSON.stringify({ phone: phone.trim(), message: message.trim() }),
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        setResult({ type: 'success', text: `SMS trimis cu succes! ID: ${data.data?.list?.[0]?.id ?? 'N/A'}` })
+        setResult({ type: 'success', text: `SMS trimis cu succes!` })
         setPhone('')
         setMessage('')
-        // Refresh page after 2s
-        setTimeout(() => window.location.reload(), 2000)
+        setTimeout(() => window.location.reload(), 1500)
       } else {
         setResult({ type: 'error', text: data.error ?? 'Eroare la trimitere.' })
       }
@@ -93,30 +91,12 @@ export default function SendSmsForm({ templates }: Props) {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="07xxxxxxxx sau +407xxxxxxxx"
+              placeholder="07xxxxxxxx sau +40xxxxxxxx"
               className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400"
               disabled={loading}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-1">Format: 07xxxxxxxx, 40xxxxxxxx sau +40xxxxxxxx</p>
-        </div>
-
-        {/* Sender (optional) */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Nume expeditor{' '}
-            <span className="text-slate-400 font-normal text-xs">(opțional)</span>
-          </label>
-          <input
-            type="text"
-            value={sender}
-            onChange={(e) => setSender(e.target.value)}
-            placeholder="Test"
-            maxLength={11}
-            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400"
-            disabled={loading}
-          />
-          <p className="text-xs text-slate-400 mt-1">Max 11 caractere. Trebuie verificat în portal SMSAPI.</p>
+          <p className="text-xs text-slate-400 mt-1">Format acceptat: 07xx, 40xx, +40xx</p>
         </div>
 
         {/* Message */}
@@ -166,7 +146,7 @@ export default function SendSmsForm({ templates }: Props) {
           </div>
           {/* Character counter */}
           <div className="flex items-center justify-between mt-1">
-            <div className="flex items-center gap-2">
+            <div>
               {isSpecial && (
                 <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                   Caractere speciale
@@ -174,10 +154,7 @@ export default function SendSmsForm({ templates }: Props) {
               )}
             </div>
             <p className="text-xs text-slate-400">
-              <span className={charCount > effectiveMax * parts ? 'text-red-500 font-medium' : ''}>
-                {charCount}
-              </span>
-              {' '}/ {effectiveMax * Math.max(1, parts)} car. • {parts > 0 ? parts : 1} SMS
+              {charCount} / {effectiveMax * parts} car. • {parts} SMS
             </p>
           </div>
         </div>
