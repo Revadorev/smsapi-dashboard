@@ -1,12 +1,17 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Package, Download, Loader2, CheckCircle, AlertCircle, Search } from 'lucide-react'
+import { Package, Download, Loader2, CheckCircle, AlertCircle, Search, ChevronDown } from 'lucide-react'
+
+interface County {
+  id: number
+  name: string
+}
 
 interface City {
   id: number
   name: string
-  extraKm: number
+  extraKM: number
   county: { id: number; name: string }
 }
 
@@ -25,9 +30,11 @@ const FIELD_CLASS =
 const LABEL_CLASS = 'block text-xs font-medium text-slate-600 mb-1'
 
 export default function AwbManager() {
+  const [counties, setCounties] = useState<County[]>([])
   const [cities, setCities] = useState<City[]>([])
-  const [citySearch, setCitySearch] = useState('')
+  const [loadingCounties, setLoadingCounties] = useState(true)
   const [loadingCities, setLoadingCities] = useState(false)
+  const [citySearch, setCitySearch] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [awbHistory, setAwbHistory] = useState<AwbEntry[]>([])
@@ -38,14 +45,25 @@ export default function AwbManager() {
     phone: '',
     email: '',
     address: '',
-    cityId: '',
-    cityName: '',
-    countyId: '',   // city.county.id — ID real pentru AWB payload
+    countyId: '',     // ID din /geolocation/county (pentru filtrare cities)
     countyName: '',
+    cityId: '',       // ID real al localității
+    cityName: '',
     weight: '1',
   })
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Load counties on mount
+  useEffect(() => {
+    fetch('/api/awb?action=counties')
+      .then((r) => r.json())
+      .then((data: County[]) => {
+        setCounties(Array.isArray(data) ? data.sort((a, b) => a.name.localeCompare(b.name, 'ro')) : [])
+      })
+      .catch(() => setCounties([]))
+      .finally(() => setLoadingCounties(false))
+  }, [])
 
   // Load AWB history from localStorage
   useEffect(() => {
@@ -55,33 +73,37 @@ export default function AwbManager() {
     } catch {}
   }, [])
 
-  // Search cities with debounce
-  const searchCities = useCallback((name: string) => {
-    if (name.length < 2) {
-      setCities([])
-      return
-    }
+  // Search cities — debounced, triggered by countyId or citySearch change
+  const fetchCities = useCallback((countyId: string, name: string) => {
+    if (!countyId) { setCities([]); return }
     setLoadingCities(true)
-    fetch(`/api/awb?action=cities&name=${encodeURIComponent(name)}`)
+    fetch(`/api/awb?action=cities&countyId=${countyId}&name=${encodeURIComponent(name)}`)
       .then((r) => r.json())
-      .then((data: City[]) => setCities(Array.isArray(data) ? data.slice(0, 20) : []))
+      .then((data: City[]) => setCities(Array.isArray(data) ? data : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false))
   }, [])
 
   useEffect(() => {
+    if (!form.countyId) { setCities([]); return }
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => searchCities(citySearch), 350)
+    debounceRef.current = setTimeout(() => fetchCities(form.countyId, citySearch), 300)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [citySearch, searchCities])
+  }, [form.countyId, citySearch, fetchCities])
+
+  function handleCountyChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const id = e.target.value
+    const name = counties.find((c) => String(c.id) === id)?.name || ''
+    setForm((f) => ({ ...f, countyId: id, countyName: name, cityId: '', cityName: '' }))
+    setCities([])
+    setCitySearch('')
+  }
 
   function handleCitySelect(city: City) {
     setForm((f) => ({
       ...f,
       cityId: String(city.id),
       cityName: city.name,
-      countyId: String(city.county?.id ?? ''),
-      countyName: city.county?.name ?? '',
     }))
     setCities([])
     setCitySearch('')
@@ -95,7 +117,7 @@ export default function AwbManager() {
     e.preventDefault()
     setResult(null)
 
-    if (!form.name || !form.phone || !form.address || !form.cityId) {
+    if (!form.name || !form.phone || !form.address || !form.countyId || !form.cityId) {
       setResult({ ok: false, message: 'Completați toate câmpurile obligatorii.' })
       return
     }
@@ -136,7 +158,7 @@ export default function AwbManager() {
         setAwbHistory(updated)
         try { localStorage.setItem('awb_history', JSON.stringify(updated)) } catch {}
 
-        setForm({ name: '', phone: '', email: '', address: '', cityId: '', cityName: '', countyId: '', countyName: '', weight: '1' })
+        setForm({ name: '', phone: '', email: '', address: '', countyId: '', countyName: '', cityId: '', cityName: '', weight: '1' })
         setCitySearch('')
       }
     } catch (err: unknown) {
@@ -198,7 +220,7 @@ export default function AwbManager() {
                     className={FIELD_CLASS}
                     placeholder="Ion Popescu"
                     value={form.name}
-                    onChange={(e) => setField('name', e.target.value)}
+         onChange={(e) => setField('name', e.target.value)}
                     required
                   />
                 </div>
@@ -240,67 +262,92 @@ export default function AwbManager() {
                 />
               </div>
 
-              {/* City search */}
+              {/* County dropdown */}
               <div>
-                <label className={LABEL_CLASS}>Localitate *</label>
-                {form.cityId ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800 font-medium">
-                      {form.cityName}
-                      {form.countyName && (
-                        <span className="ml-2 text-xs text-indigo-500 font-normal">({form.countyName})</span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm((f) => ({ ...f, cityId: '', cityName: '', countyId: '', countyName: '' }))
-                        setCitySearch('')
-                      }}
-                      className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
-                    >
-                      Schimbă
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="text"
-                        className={`${FIELD_CLASS} pl-9`}
-                        placeholder="Caută localitate (ex: Cluj, Iași, Brașov...)"
-                        value={citySearch}
-                        onChange={(e) => setCitySearch(e.target.value)}
-                      />
-                      {loadingCities && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
-                      )}
-                    </div>
-                    {citySearch.length > 0 && citySearch.length < 2 && (
-                      <p className="text-xs text-slate-400 px-1">Scrie cel puțin 2 caractere...</p>
-                    )}
-                    {cities.length > 0 && (
-                      <div className="border border-slate-200 rounded-lg overflow-hidden max-h-52 overflow-y-auto shadow-sm">
-                        {cities.map((city) => (
-                          <button
-                            key={city.id}
-                            type="button"
-                            onClick={() => handleCitySelect(city)}
-                            className="w-full text-left px-3 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 border-b border-slate-100 last:border-0 transition-colors flex items-center justify-between"
-                          >
-                            <span className="font-medium">{city.name}</span>
-                            <span className="text-xs text-slate-400 ml-2 shrink-0">{city.county?.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {!loadingCities && citySearch.length >= 2 && cities.length === 0 && (
-                      <p className="text-xs text-slate-400 px-1">Nicio localitate găsită.</p>
-                    )}
-                  </div>
-                )}
+                <label className={LABEL_CLASS}>Județ *</label>
+                <div className="relative">
+                  <select
+                    className={`${FIELD_CLASS} appearance-none pr-8`}
+                    value={form.countyId}
+                    onChange={handleCountyChange}
+                    required
+                    disabled={loadingCounties}
+                  >
+                    <option value="">
+                      {loadingCounties ? 'Se încarcă județele...' : '— Selectează județ —'}
+                    </option>
+                    {counties.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
               </div>
+
+              {/* City — shown only after county selected */}
+              {form.countyId && (
+                <div>
+                  <label className={LABEL_CLASS}>Localitate *</label>
+                  {form.cityId ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800 font-medium">
+                        {form.cityName}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, cityId: '', cityName: '' }))
+                          setCitySearch('')
+                        }}
+                        className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
+                      >
+                        Schimbă
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          className={`${FIELD_CLASS} pl-9`}
+                          placeholder="Caută localitate..."
+                          value={citySearch}
+                          onChange={(e) => setCitySearch(e.target.value)}
+                          autoFocus
+                        />
+                        {loadingCities && (
+                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+                        )}
+                      </div>
+                      {cities.length > 0 && (
+                        <div className="border border-slate-200 rounded-lg overflow-hidden max-h-52 overflow-y-auto shadow-sm">
+                          {cities.map((city) => (
+                            <button
+                              key={city.id}
+                              type="button"
+                              onClick={() => handleCitySelect(city)}
+                              className="w-full text-left px-3 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 border-b border-slate-100 last:border-0 transition-colors"
+                            >
+                              {city.name}
+                              {city.extraKM > 0 && (
+                                <span className="ml-2 text-xs text-slate-400">+{city.extraKM} km</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {!loadingCities && form.countyId && cities.length === 0 && (
+                        <p className="text-xs text-slate-400 px-1">
+                          {citySearch ? 'Nicio localitate găsită.' : 'Se încarcă localitățile...'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Weight */}
               <div className="w-36">
