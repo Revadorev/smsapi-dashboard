@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { MessageSquare, BarChart2, Settings, Wifi, WifiOff, Gift } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { MessageSquare, BarChart2, Settings, Wifi, WifiOff, Gift, LogOut } from 'lucide-react'
 import type { AccountBalance } from '@/lib/smsapi'
 
 interface Props {
@@ -13,6 +13,13 @@ interface Props {
 export default function DashboardLayout({ balance, children }: Props) {
   const isConnected = balance !== null
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -56,8 +63,8 @@ export default function DashboardLayout({ balance, children }: Props) {
               ))}
             </nav>
 
-            {/* Status */}
-            <div className="flex items-center gap-3">
+            {/* Status + Logout */}
+            <div className="flex items-center gap-2">
               {isConnected ? (
                 <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
                   <Wifi className="w-3.5 h-3.5 text-green-600" />
@@ -71,6 +78,13 @@ export default function DashboardLayout({ balance, children }: Props) {
                   <span className="text-xs font-semibold text-red-600">Offline</span>
                 </div>
               )}
+              <button
+                onClick={handleLogout}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Deconectare"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
