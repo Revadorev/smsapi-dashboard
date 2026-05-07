@@ -10,15 +10,7 @@ export default async function AwbPage() {
 
   return (
     <DashboardLayout balance={balance}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">📦 Creare AWB SameDay</h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            Generează etichete de livrare pentru cadouri eMAG KidGPS — ramburs 0, plată expeditor.
-          </p>
-        </div>
-        <AwbManager />
-      </div>
+      <AwbManager />
     </DashboardLayout>
   )
 }

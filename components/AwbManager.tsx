@@ -39,6 +39,8 @@ export default function AwbManager() {
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [awbHistory, setAwbHistory] = useState<AwbEntry[]>([])
   const [downloadingAwb, setDownloadingAwb] = useState<string | null>(null)
+  const [historyPage, setHistoryPage] = useState(1)
+  const HISTORY_PER_PAGE = 5
 
   const [form, setForm] = useState({
     name: '',
@@ -156,6 +158,7 @@ export default function AwbManager() {
         }
         const updated = [entry, ...awbHistory].slice(0, 50)
         setAwbHistory(updated)
+        setHistoryPage(1)
         try { localStorage.setItem('awb_history', JSON.stringify(updated)) } catch {}
 
         setForm({ name: '', phone: '', email: '', address: '', countyId: '', countyName: '', cityId: '', cityName: '', weight: '1' })
@@ -424,42 +427,70 @@ export default function AwbManager() {
                 <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Niciun AWB creat încă</p>
               </div>
-            ) : (
-              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-                {awbHistory.map((entry) => (
-                  <div
-                    key={entry.awb + entry.createdAt}
-                    className="border border-slate-200 rounded-lg p-3 hover:border-indigo-200 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{entry.name}</p>
-                        <p className="text-xs text-slate-500 truncate">{entry.phone}</p>
-                        <p className="text-xs text-slate-400 truncate mt-0.5">
-                          {entry.city}{entry.county ? `, ${entry.county}` : ''}
-                        </p>
-                        <p className="text-xs font-mono text-indigo-600 mt-1">{entry.awb}</p>
-                        <p className="text-xs text-slate-300 mt-0.5">
-                          {new Date(entry.createdAt).toLocaleString('ro-RO')}
-                        </p>
+            ) : (() => {
+              const totalPages = Math.ceil(awbHistory.length / HISTORY_PER_PAGE)
+              const pageEntries = awbHistory.slice(
+                (historyPage - 1) * HISTORY_PER_PAGE,
+                historyPage * HISTORY_PER_PAGE
+              )
+              return (
+                <div className="space-y-3">
+                  {pageEntries.map((entry) => (
+                    <div
+                      key={entry.awb + entry.createdAt}
+                      className="border border-slate-200 rounded-lg p-3 hover:border-indigo-200 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{entry.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{entry.phone}</p>
+                          <p className="text-xs text-slate-400 truncate mt-0.5">
+                            {entry.city}{entry.county ? `, ${entry.county}` : ''}
+                          </p>
+                          <p className="text-xs font-mono text-indigo-600 mt-1">{entry.awb}</p>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            {new Date(entry.createdAt).toLocaleString('ro-RO')}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => downloadPdf(entry.awb)}
+                          disabled={downloadingAwb === entry.awb}
+                          className="shrink-0 p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Descarcă PDF"
+                        >
+                          {downloadingAwb === entry.awb ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                        </button>
                       </div>
+                    </div>
+                  ))}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <button
-                        onClick={() => downloadPdf(entry.awb)}
-                        disabled={downloadingAwb === entry.awb}
-                        className="shrink-0 p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
-                        title="Descarcă PDF"
+                        onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                        disabled={historyPage === 1}
+                        className="px-3 py-1.5 text-xs text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {downloadingAwb === entry.awb ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4" />
-                        )}
+                        ← Anterior
+                      </button>
+                      <span className="text-xs text-slate-400">
+                        {historyPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setHistoryPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={historyPage === totalPages}
+                        className="px-3 py-1.5 text-xs text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Următor →
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>
