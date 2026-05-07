@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (action === 'cities') {
-      const countyId = searchParams.get('countyId')
       const name = searchParams.get('name') || ''
-      const url = `${SAMEDAY_BASE}/api/geolocation/city?countyId=${countyId}&name=${encodeURIComponent(name)}`
+      if (name.length < 2) return NextResponse.json([])
+      const url = `${SAMEDAY_BASE}/api/geolocation/city?name=${encodeURIComponent(name)}`
       const res = await fetch(url, { headers: { 'X-AUTH-TOKEN': token } })
       const data = await res.json()
       return NextResponse.json(data.data || [])
