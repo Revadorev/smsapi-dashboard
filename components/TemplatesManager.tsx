@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Plus, Trash2, Pencil, Save, X, FileText } from 'lucide-react'
 import type { SmsTemplate } from '@/lib/supabase'
-import { getBrowserClient } from '@/lib/supabase'
 import { formatDate } from '@/lib/utils'
 
 interface Props {
@@ -28,17 +27,18 @@ export default function TemplatesManager({ templates: initialTemplates }: Props)
     }
     setSaving(true)
     setError('')
-    const { data, error: err } = await getBrowserClient()
-      .from('sms_templates')
-      .insert({ name: newName.trim(), content: newContent.trim() })
-      .select()
-      .single()
+    const res = await fetch('/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim(), content: newContent.trim() }),
+    })
+    const json = await res.json()
     setSaving(false)
-    if (err) {
-      setError(err.message)
+    if (!res.ok) {
+      setError(json.error || 'Eroare la salvare.')
       return
     }
-    setTemplates([...templates, data])
+    setTemplates([...templates, json])
     setNewName('')
     setNewContent('')
     setShowAdd(false)
@@ -51,26 +51,31 @@ export default function TemplatesManager({ templates: initialTemplates }: Props)
     }
     setSaving(true)
     setError('')
-    const { data, error: err } = await getBrowserClient()
-      .from('sms_templates')
-      .update({ name: editName.trim(), content: editContent.trim() })
-      .eq('id', id)
-      .select()
-      .single()
+    const res = await fetch('/api/templates', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name: editName.trim(), content: editContent.trim() }),
+    })
+    const json = await res.json()
     setSaving(false)
-    if (err) {
-      setError(err.message)
+    if (!res.ok) {
+      setError(json.error || 'Eroare la salvare.')
       return
     }
-    setTemplates(templates.map((t) => (t.id === id ? data : t)))
+    setTemplates(templates.map((t) => (t.id === id ? json : t)))
     setEditingId(null)
   }
 
   async function deleteTemplate(id: string) {
     if (!confirm('Sigur doriți să ștergeți acest template?')) return
-    const { error: err } = await getBrowserClient().from('sms_templates').delete().eq('id', id)
-    if (err) {
-      setError(err.message)
+    const res = await fetch('/api/templates', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (!res.ok) {
+      const json = await res.json()
+      setError(json.error || 'Eroare la ștergere.')
       return
     }
     setTemplates(templates.filter((t) => t.id !== id))
