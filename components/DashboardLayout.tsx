@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { MessageSquare, BarChart2, Settings, Wifi, WifiOff } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { MessageSquare, BarChart2, Settings, Wifi, WifiOff, Gift } from 'lucide-react'
 import type { AccountBalance } from '@/lib/smsapi'
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 
 export default function DashboardLayout({ balance, children }: Props) {
   const isConnected = balance !== null
+  const pathname = usePathname()
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -33,27 +35,25 @@ export default function DashboardLayout({ balance, children }: Props) {
 
             {/* Nav */}
             <nav className="hidden md:flex items-center gap-1">
-              <Link
-                href="/"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-indigo-600 bg-indigo-50"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Trimite SMS
-              </Link>
-              <Link
-                href="/history"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <BarChart2 className="w-4 h-4" />
-                Istoric
-              </Link>
-              <Link
-                href="/templates"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                Template-uri
-              </Link>
+              {[
+                { href: '/', icon: MessageSquare, label: 'Trimite SMS' },
+                { href: '/history', icon: BarChart2, label: 'Istoric' },
+                { href: '/templates', icon: Settings, label: 'Template-uri' },
+                { href: '/cadouri', icon: Gift, label: 'Cadouri' },
+              ].map(({ href, icon: Icon, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === href
+                      ? 'text-indigo-600 bg-indigo-50'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </Link>
+              ))}
             </nav>
 
             {/* Status */}
