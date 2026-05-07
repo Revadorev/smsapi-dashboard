@@ -12,6 +12,7 @@ interface City {
   id: number
   name: string
   extraKm: number
+  county: { id: number; name: string }
 }
 
 interface AwbEntry {
@@ -48,6 +49,7 @@ export default function AwbManager() {
     countyName: '',
     cityId: '',
     cityName: '',
+    realCountyId: '',   // county.id din obiectul city (diferit de countyId din dropdown)
     weight: '1',
   })
 
@@ -110,7 +112,12 @@ export default function AwbManager() {
   }
 
   function handleCitySelect(city: City) {
-    setForm((f) => ({ ...f, cityId: String(city.id), cityName: city.name }))
+    setForm((f) => ({
+      ...f,
+      cityId: String(city.id),
+      cityName: city.name,
+      realCountyId: String(city.county?.id ?? f.countyId),
+    }))
   }
 
   function setField(key: keyof typeof form, value: string) {
@@ -136,7 +143,7 @@ export default function AwbManager() {
           phone: form.phone,
           email: form.email || undefined,
           address: form.address,
-          countyId: form.countyId,
+          countyId: form.realCountyId || form.countyId,
           cityId: form.cityId,
           weight: Number(form.weight) || 1,
         }),
@@ -164,7 +171,7 @@ export default function AwbManager() {
         try { localStorage.setItem('awb_history', JSON.stringify(updated)) } catch {}
 
         // Reset form
-        setForm({ name: '', phone: '', email: '', address: '', countyId: '', countyName: '', cityId: '', cityName: '', weight: '1' })
+        setForm({ name: '', phone: '', email: '', address: '', countyId: '', countyName: '', cityId: '', cityName: '', realCountyId: '', weight: '1' })
         setCities([])
         setCitySearch('')
       }
@@ -304,7 +311,7 @@ export default function AwbManager() {
                       <button
                         type="button"
                         onClick={() => {
-                          setForm((f) => ({ ...f, cityId: '', cityName: '' }))
+                          setForm((f) => ({ ...f, cityId: '', cityName: '', realCountyId: '' }))
                           setCitySearch('')
                         }}
                         className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
