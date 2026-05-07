@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const token = await getToken()
-    const res = await fetch(`${SAMEDAY_BASE}/api/client/awb/${awb}/pdf`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    const res = await fetch(`${SAMEDAY_BASE}/api/awb/download/${awb}`, {
+      headers: { 'X-AUTH-TOKEN': token },
     })
 
     if (!res.ok) {

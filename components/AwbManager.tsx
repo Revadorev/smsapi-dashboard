@@ -145,8 +145,9 @@ export default function AwbManager() {
       if (!res.ok || data.error) {
         setResult({ ok: false, message: data.error || 'Eroare la creare AWB.' })
       } else {
-        const awbNumber = typeof data.awb === 'string' ? data.awb : JSON.stringify(data.awb)
-        setResult({ ok: true, message: `AWB creat: ${awbNumber}` })
+        const awbNumber = data.awb || (typeof data === 'string' ? data : JSON.stringify(data))
+        const cost = data.cost ? ` (cost: ${data.cost} RON)` : ''
+        setResult({ ok: true, message: `AWB creat: ${awbNumber}${cost}` })
 
         // Save to history
         const entry: AwbEntry = {

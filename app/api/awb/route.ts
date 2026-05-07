@@ -6,6 +6,12 @@ const SAMEDAY_PASS = process.env.SAMEDAY_PASSWORD || '^BWw1t8C'
 const PICKUP_POINT = Number(process.env.SAMEDAY_PICKUP_POINT) || 422685
 const CONTACT_PERSON = Number(process.env.SAMEDAY_CONTACT_PERSON) || 593698
 const SERVICE_ID = Number(process.env.SAMEDAY_SERVICE_ID) || 10
+// thirdParty = expeditorul (pickup point KidGPS)
+const THIRD_PARTY_NAME = process.env.SAMEDAY_THIRD_PARTY_NAME || 'eMAG KidGPS'
+const THIRD_PARTY_PHONE = process.env.SAMEDAY_THIRD_PARTY_PHONE || '0371781799'
+const THIRD_PARTY_ADDRESS = process.env.SAMEDAY_THIRD_PARTY_ADDRESS || 'bulevardul tomis 50'
+const THIRD_PARTY_COUNTY = process.env.SAMEDAY_THIRD_PARTY_COUNTY || 'Constanta'
+const THIRD_PARTY_CITY = process.env.SAMEDAY_THIRD_PARTY_CITY || 'Constanta'
 
 async function getToken(): Promise<string> {
   const res = await fetch(`${SAMEDAY_BASE}/api/authenticate`, {
@@ -69,28 +75,37 @@ export async function POST(req: NextRequest) {
       pickupPoint: PICKUP_POINT,
       contactPerson: CONTACT_PERSON,
       packageType: 1,
-      packageNumber: 1,
-      packageWeight: weight || 1,
       service: SERVICE_ID,
       awbPayment: 1,
       cashOnDelivery: 0,
       insuredValue: 0,
-      thirdPartyPickup: 0,
+      // thirdPartyPickup: 1 = expeditor terț (pickup point KidGPS plătește)
+      thirdPartyPickup: 1,
+      thirdParty: {
+        name: THIRD_PARTY_NAME,
+        phoneNumber: THIRD_PARTY_PHONE,
+        personType: 0,
+        address: THIRD_PARTY_ADDRESS,
+        countyString: THIRD_PARTY_COUNTY,
+        cityString: THIRD_PARTY_CITY,
+      },
       observation: 'Cadou eMag KidGPS',
+      parcels: [{ weight: weight || 1 }],
       awbRecipient: {
         name,
         phoneNumber: phone,
+        personType: 0,
         address,
-        cityId: Number(cityId),
-        countyId: Number(countyId),
+        county: Number(countyId),
+        city: Number(cityId),
         ...(email ? { email } : {}),
       },
     }
 
-    const res = await fetch(`${SAMEDAY_BASE}/api/client/awb`, {
+    const res = await fetch(`${SAMEDAY_BASE}/api/awb`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'X-AUTH-TOKEN': token,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
@@ -98,11 +113,15 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json()
 
-    if (!res.ok) {
+    if (!res.ok || data.code === 400) {
       return NextResponse.json({ error: JSON.stringify(data) }, { status: 400 })
     }
 
-    return NextResponse.json({ awb: data.awbNumber || data.awb || data })
+    return NextResponse.json({
+      awb: data.awbNumber,
+      cost: data.awbCost,
+      pdfLink: data.pdfLink,
+    })
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })
   }
