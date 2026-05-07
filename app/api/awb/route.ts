@@ -5,7 +5,7 @@ const SAMEDAY_USER = process.env.SAMEDAY_USERNAME || 'corect2000API'
 const SAMEDAY_PASS = process.env.SAMEDAY_PASSWORD || '^BWw1t8C'
 const PICKUP_POINT = Number(process.env.SAMEDAY_PICKUP_POINT) || 422685
 const CONTACT_PERSON = Number(process.env.SAMEDAY_CONTACT_PERSON) || 593698
-const SERVICE_ID = Number(process.env.SAMEDAY_SERVICE_ID) || 10
+const SERVICE_ID = Number(process.env.SAMEDAY_SERVICE_ID) || 7
 
 // Module-level token cache
 let cachedToken: string | null = null
