@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { MessageSquare, BarChart2, Settings, Wifi, WifiOff, Gift, LogOut } from 'lucide-react'
+import { MessageSquare, BarChart2, Settings, Wifi, WifiOff, Gift, LogOut, Package } from 'lucide-react'
 import type { AccountBalance } from '@/lib/smsapi'
 
 interface Props {
@@ -47,6 +47,7 @@ export default function DashboardLayout({ balance, children }: Props) {
                 { href: '/history', icon: BarChart2, label: 'Istoric' },
                 { href: '/templates', icon: Settings, label: 'Template-uri' },
                 { href: '/cadouri', icon: Gift, label: 'Cadouri' },
+                { href: '/awb', icon: Package, label: 'AWB' },
               ].map(({ href, icon: Icon, label }) => (
                 <Link
                   key={href}
