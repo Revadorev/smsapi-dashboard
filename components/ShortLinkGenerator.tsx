@@ -38,7 +38,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
     try {
       const reviewUrl = buildReviewUrl(url)
       if (!reviewUrl) {
-        setError('URL invalid. Introduceti un link de produs eMAG.')
+        setError('URL invalid. Introduceți un link de produs eMAG.')
         setLoading(false)
         return
       }
@@ -54,7 +54,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
         setShortUrl(data.short_url)
       }
     } catch {
-      setError('Eroare de retea.')
+      setError('Eroare de rețea.')
     } finally {
       setLoading(false)
     }
@@ -66,20 +66,27 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      generate()
+    }
+  }
+
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Link2 className="w-4 h-4 text-indigo-500" />
-        <span className="text-sm font-medium text-slate-700">Genereaza link recenzie eMAG</span>
+        <span className="text-sm font-medium text-slate-700">Generează link recenzie eMAG</span>
       </div>
 
-      {/* URL produs */}
+      {/* URL input */}
       <div className="flex gap-2">
         <input
           type="url"
           value={url}
           onChange={(e) => { setUrl(e.target.value); setShortUrl(''); setError('') }}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), generate())}
+          onKeyDown={handleKeyDown}
           placeholder="https://www.emag.ro/produs.../pd/XXXXXXX/"
           className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white placeholder:text-slate-400"
           disabled={loading}
@@ -91,23 +98,23 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
           className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-          {loading ? 'Se genereaza...' : 'Scurteaza'}
+          {loading ? 'Se generează...' : 'Scurtează'}
         </button>
       </div>
 
-      {/* Alias */}
+      {/* Alias input */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-500 font-mono whitespace-nowrap">emagkid.ro/</span>
+        <span className="text-xs text-slate-500 whitespace-nowrap">emagkid.ro/</span>
         <input
           type="text"
           value={alias}
           onChange={(e) => { setAlias(e.target.value); setShortUrl(''); setError('') }}
-          placeholder="alias (optional, ex: irigator-bucal)"
+          placeholder="alias-optional (ex: irigator-bucal)"
           className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white placeholder:text-slate-400"
           disabled={loading}
         />
       </div>
-      <p className="text-xs text-slate-400 -mt-1">Lasa gol pentru alias generat automat</p>
+      <p className="text-xs text-slate-400 -mt-1">Lasă gol pentru alias generat automat</p>
 
       {/* Eroare */}
       {error && (
@@ -128,10 +135,21 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
             {shortUrl}
           </a>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <a href={shortUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-slate-600" title="Deschide">
+            <a
+              href={shortUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Deschide"
+            >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
-            <button type="button" onClick={copy} className="p-1.5 text-slate-400 hover:text-slate-600" title="Copiaza">
+            <button
+              type="button"
+              onClick={copy}
+              className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Copiază"
+            >
               {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
             {onInsert && (
@@ -140,7 +158,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
                 onClick={() => onInsert(shortUrl)}
                 className="ml-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-md transition-colors"
               >
-                Insereaza in mesaj
+                Inserează în mesaj
               </button>
             )}
           </div>
