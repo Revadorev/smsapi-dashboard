@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Send, Phone, MessageSquare, ChevronDown, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import ShortLinkGenerator from '@/components/ShortLinkGenerator'
 import type { SmsTemplate } from '@/lib/supabase'
 
 interface Props {
@@ -98,6 +99,9 @@ export default function SendSmsForm({ templates }: Props) {
           </div>
           <p className="text-xs text-slate-400 mt-1">Format acceptat: 07xx, 40xx, +40xx</p>
         </div>
+
+        {/* ShortLink Generator */}
+        <ShortLinkGenerator onInsert={(short) => setMessage((prev) => prev ? prev + ' ' + short : short)} />
 
         {/* Message */}
         <div>
