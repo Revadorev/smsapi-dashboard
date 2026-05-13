@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase'
 
 const SAMEDAY_BASE = 'https://api.sameday.ro'
 const SAMEDAY_USER = process.env.SAMEDAY_USERNAME || 'corect2000API'
@@ -50,6 +51,17 @@ export async function GET(req: NextRequest) {
   const action = searchParams.get('action')
 
   try {
+    if (action === 'history') {
+      const db = createServerClient()
+      const { data: rows, error } = await db
+        .from('awb_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json(rows || [])
+    }
+
     const token = await getToken()
 
     if (action === 'counties') {
@@ -130,9 +142,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: JSON.stringify(data) }, { status: 400 })
     }
 
+    const awbNumber = data.awbNumber
+    const awbCost = data.awbCost
+
+    // Salvează în Supabase
+    try {
+      const db = createServerClient()
+      await db.from('awb_logs').insert({
+        awb_number: awbNumber,
+        recipient_name: name,
+        recipient_phone: phone,
+        recipient_email: email || null,
+        recipient_address: address,
+        county_id: Number(countyId),
+        city_id: Number(cityId),
+        weight: weight || 1,
+        cost: awbCost || null,
+      })
+    } catch (_) {
+      // non-fatal — AWB e creat, doar logul a eșuat
+    }
+
     return NextResponse.json({
-      awb: data.awbNumber,
-      cost: data.awbCost,
+      awb: awbNumber,
+      cost: awbCost,
       pdfLink: data.pdfLink,
     })
   } catch (e: unknown) {

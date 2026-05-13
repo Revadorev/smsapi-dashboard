@@ -16,13 +16,15 @@ interface City {
 }
 
 interface AwbEntry {
-  awb: string
-  name: string
-  phone: string
-  address: string
-  county: string
-  city: string
-  createdAt: string
+  id?: string
+  awb_number: string
+  recipient_name: string
+  recipient_phone: string
+  recipient_address: string
+  county_id?: number
+  city_id?: number
+  cost?: number | null
+  created_at: string
 }
 
 const FIELD_CLASS =
@@ -38,9 +40,10 @@ export default function AwbManager() {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [awbHistory, setAwbHistory] = useState<AwbEntry[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
   const [downloadingAwb, setDownloadingAwb] = useState<string | null>(null)
   const [historyPage, setHistoryPage] = useState(1)
-  const HISTORY_PER_PAGE = 5
+  const HISTORY_PER_PAGE = 10
 
   const [form, setForm] = useState({
     name: '',
@@ -67,13 +70,18 @@ export default function AwbManager() {
       .finally(() => setLoadingCounties(false))
   }, [])
 
-  // Load AWB history from localStorage
-  useEffect(() => {
+  // Load AWB history from Supabase
+  const loadHistory = useCallback(async () => {
+    setLoadingHistory(true)
     try {
-      const stored = localStorage.getItem('awb_history')
-      if (stored) setAwbHistory(JSON.parse(stored))
+      const res = await fetch('/api/awb?action=history')
+      const data = await res.json()
+      if (Array.isArray(data)) setAwbHistory(data)
     } catch {}
+    finally { setLoadingHistory(false) }
   }, [])
+
+  useEffect(() => { loadHistory() }, [loadHistory])
 
   // Search cities — debounced, triggered by countyId or citySearch change
   const fetchCities = useCallback((countyId: string, name: string) => {
@@ -147,19 +155,9 @@ export default function AwbManager() {
         const cost = data.cost ? ` (cost: ${data.cost} RON)` : ''
         setResult({ ok: true, message: `AWB creat: ${awbNumber}${cost}` })
 
-        const entry: AwbEntry = {
-          awb: awbNumber,
-          name: form.name,
-          phone: form.phone,
-          address: form.address,
-          county: form.countyName,
-          city: form.cityName,
-          createdAt: new Date().toISOString(),
-        }
-        const updated = [entry, ...awbHistory].slice(0, 50)
-        setAwbHistory(updated)
+        // Reîncarcă istoricul din Supabase
+        await loadHistory()
         setHistoryPage(1)
-        try { localStorage.setItem('awb_history', JSON.stringify(updated)) } catch {}
 
         setForm({ name: '', phone: '', email: '', address: '', countyId: '', countyName: '', cityId: '', cityName: '', weight: '1' })
         setCitySearch('')
@@ -422,7 +420,12 @@ export default function AwbManager() {
                 <span className="ml-2 text-xs font-normal text-slate-400">({awbHistory.length})</span>
               )}
             </h2>
-            {awbHistory.length === 0 ? (
+            {loadingHistory ? (
+              <div className="text-center py-10 text-slate-400">
+                <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin opacity-40" />
+                <p className="text-sm">Se încarcă...</p>
+              </div>
+            ) : awbHistory.length === 0 ? (
               <div className="text-center py-10 text-slate-400">
                 <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Niciun AWB creat încă</p>
@@ -437,28 +440,29 @@ export default function AwbManager() {
                 <div className="space-y-3">
                   {pageEntries.map((entry) => (
                     <div
-                      key={entry.awb + entry.createdAt}
+                      key={entry.id || entry.awb_number + entry.created_at}
                       className="border border-slate-200 rounded-lg p-3 hover:border-indigo-200 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{entry.name}</p>
-                          <p className="text-xs text-slate-500 truncate">{entry.phone}</p>
-                          <p className="text-xs text-slate-400 truncate mt-0.5">
-                            {entry.city}{entry.county ? `, ${entry.county}` : ''}
-                          </p>
-                          <p className="text-xs font-mono text-indigo-600 mt-1">{entry.awb}</p>
+                          <p className="text-sm font-semibold text-slate-800 truncate">{entry.recipient_name}</p>
+                          <p className="text-xs text-slate-500 truncate">{entry.recipient_phone}</p>
+                          <p className="text-xs text-slate-400 truncate mt-0.5">{entry.recipient_address}</p>
+                          <p className="text-xs font-mono text-indigo-600 mt-1">{entry.awb_number}</p>
+                          {entry.cost != null && (
+                            <p className="text-xs text-slate-400 mt-0.5">Cost: {entry.cost} RON</p>
+                          )}
                           <p className="text-xs text-slate-300 mt-0.5">
-                            {new Date(entry.createdAt).toLocaleString('ro-RO')}
+                            {new Date(entry.created_at).toLocaleString('ro-RO')}
                           </p>
                         </div>
                         <button
-                          onClick={() => downloadPdf(entry.awb)}
-                          disabled={downloadingAwb === entry.awb}
+                          onClick={() => downloadPdf(entry.awb_number)}
+                          disabled={downloadingAwb === entry.awb_number}
                           className="shrink-0 p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
                           title="Descarcă PDF"
                         >
-                          {downloadingAwb === entry.awb ? (
+                          {downloadingAwb === entry.awb_number ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Download className="w-4 h-4" />
