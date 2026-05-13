@@ -112,19 +112,24 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1).reduce((acc, p, idx, arr) => {
-                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...')
-                  acc.push(p)
-                  return acc
-                }, []).map((p, idx) =>
-                  p === '...' ? (
-                    <span key={'ellipsis-' + idx} className="px-1 text-slate-400 text-xs">...</span>
-                  ) : (
-                    <button key={p} onClick={() => setPage(p)} className={"w-8 h-8 rounded-lg text-xs font-medium transition-colors " + (p === currentPage ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-200')}>
-                      {p}
-                    </button>
+                {(() => {
+                  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  const items: (number | string)[] = []
+                  pages.forEach((p, idx) => {
+                    if (idx > 0 && p - pages[idx - 1] > 1) items.push('...')
+                    items.push(p)
+                  })
+                  return items.map((p, idx) =>
+                    p === '...' ? (
+                      <span key={'e' + idx} className="px-1 text-slate-400 text-xs">...</span>
+                    ) : (
+                      <button key={p} onClick={() => setPage(p as number)} className={'w-8 h-8 rounded-lg text-xs font-medium transition-colors ' + (p === currentPage ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-200')}>
+                        {p}
+                      </button>
+                    )
                   )
-                )}
+                })()}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronRight className="w-4 h-4" />
                 </button>
