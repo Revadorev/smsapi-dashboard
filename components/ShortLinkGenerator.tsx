@@ -14,16 +14,45 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
 
+  function buildReviewUrl(input: string): string | null {
+    try {
+      const u = new URL(input.trim())
+      if (!u.hostname.includes('emag.ro')) return null
+
+      // Dacă e deja link de review, îl returnăm ca atare
+      if (u.pathname.includes('/review/add')) return input.trim()
+
+      // Extragem slug-ul și PD codul din URL-ul de produs
+      // Format: /slug/pd/PDCODE/ sau /slug/pd/PDCODE
+      const match = u.pathname.match(/^(\/.*)\/pd\/([A-Z0-9]+)/i)
+      if (!match) return null
+
+      const slug = match[1]  // ex: /irigator-bucal-...
+      const pd = match[2]    // ex: DQFLL43BM
+
+      return `https://www.emag.ro/product-feedback${slug}/pd/${pd}/review/add?ref=review-box_add-review_btn`
+    } catch {
+      return null
+    }
+  }
+
   async function generate() {
     if (!url.trim()) return
     setLoading(true)
     setError('')
     setShortUrl('')
     try {
+      const reviewUrl = buildReviewUrl(url)
+      if (!reviewUrl) {
+        setError('URL invalid. Introduceți un link de produs eMAG.')
+        setLoading(false)
+        return
+      }
+
       const res = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: reviewUrl }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -55,7 +84,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Link2 className="w-4 h-4 text-indigo-500" />
-        <span className="text-sm font-medium text-slate-700">Generează shortlink eMAG</span>
+        <span className="text-sm font-medium text-slate-700">Generează link recenzie eMAG</span>
       </div>
 
       {/* Input + buton */}
@@ -65,7 +94,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
           value={url}
           onChange={(e) => { setUrl(e.target.value); setShortUrl(''); setError('') }}
           onKeyDown={handleKeyDown}
-          placeholder="https://www.emag.ro/product/pd/..."
+          placeholder="https://www.emag.ro/produs.../pd/XXXXXXX/"
           className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white placeholder:text-slate-400"
           disabled={loading}
         />
