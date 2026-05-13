@@ -16,7 +16,7 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [refreshInfo, setRefreshInfo] = useState(null)
+  const [refreshInfo, setRefreshInfo] = useState<string | null>(null)
 
   async function refresh() {
     setLoading(true)
