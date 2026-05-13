@@ -44,7 +44,7 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
   const currentPage = Math.min(page, totalPages)
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
-  function handleSearch(val) {
+  function handleSearch(val: string) {
     setSearch(val)
     setPage(1)
   }
