@@ -12,7 +12,7 @@ export default async function HistoryPage() {
       .from('sms_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(500),
   ])
 
   const balanceData = balance.status === 'fulfilled' ? balance.value : null
