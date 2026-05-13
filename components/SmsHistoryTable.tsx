@@ -92,21 +92,21 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        {filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">Niciun SMS înregistrat</p>
-            <p className="text-slate-400 text-sm mt-1">
-              {search
-                ? 'Niciun rezultat pentru căutarea dvs.'
-                : 'Trimiteți primul SMS din formularul alăturat.'}
-            </p>
-          </div>
-        ) : (
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">Niciun SMS înregistrat</p>
+          <p className="text-slate-400 text-sm mt-1">
+            {search
+              ? 'Niciun rezultat pentru căutarea dvs.'
+              : 'Trimiteți primul SMS din formularul alăturat.'}
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-y-auto max-h-96">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left border-b border-slate-100">
+            <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
+              <tr className="text-left">
                 <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">
                   Destinatar
                 </th>
@@ -127,29 +127,29 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
             <tbody className="divide-y divide-slate-100">
               {filtered.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span className="font-mono text-xs font-medium text-slate-700">
                       {formatPhone(log.phone_number)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 max-w-xs">
-                    <p className="text-slate-700 truncate" title={log.message}>
+                  <td className="px-4 py-3">
+                    <p className="text-slate-700 line-clamp-2" title={log.message}>
                       {log.message}
                     </p>
                     {log.error_message && (
-                      <p className="text-xs text-red-500 mt-0.5 truncate" title={log.error_message}>
+                      <p className="text-xs text-red-500 mt-0.5 line-clamp-1" title={log.error_message}>
                         {log.error_message}
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(log.status)}`}
                     >
                       {log.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                     {log.points != null ? log.points.toFixed(4) : '—'}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
@@ -159,8 +159,8 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
