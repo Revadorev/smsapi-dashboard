@@ -19,14 +19,11 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
     setLoading(true)
     setRefreshInfo(null)
     try {
-      // 1. Actualizeaza statusurile QUEUE din SMSAPI
       const statusRes = await fetch('/api/refresh-status', { method: 'POST' })
       const statusData = await statusRes.json()
       if (statusData.updated > 0) {
         setRefreshInfo(`${statusData.updated} status${statusData.updated > 1 ? 'uri' : ''} actualizat${statusData.updated > 1 ? 'e' : ''}`)
       }
-
-      // 2. Reincarca logurile
       const res = await fetch('/api/logs?limit=50')
       const data = await res.json()
       if (data.data) setLogs(data.data)
@@ -91,7 +88,7 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* List */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
           <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -103,62 +100,46 @@ export default function SmsHistoryTable({ logs: initialLogs }: Props) {
           </p>
         </div>
       ) : (
-        <div className="overflow-y-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
-              <tr className="text-left">
-                <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">
-                  Destinatar
-                </th>
-                <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">
-                  Mesaj
-                </th>
-                <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">
-                  Status
-                </th>
-                <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">
-                  Credite
-                </th>
-                <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">
-                  Data
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="font-mono text-xs font-medium text-slate-700">
-                      {formatPhone(log.phone_number)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-slate-700 line-clamp-2" title={log.message}>
-                      {log.message}
-                    </p>
-                    {log.error_message && (
-                      <p className="text-xs text-red-500 mt-0.5 line-clamp-1" title={log.error_message}>
-                        {log.error_message}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(log.status)}`}
-                    >
-                      {log.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
-                    {log.points != null ? log.points.toFixed(4) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
-                    {formatDate(log.created_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="divide-y divide-slate-100">
+          {/* Column headers */}
+          <div className="grid grid-cols-[1fr_2fr_auto_auto_auto] gap-3 px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <span>Destinatar</span>
+            <span>Mesaj</span>
+            <span>Status</span>
+            <span>Credite</span>
+            <span>Data</span>
+          </div>
+          {filtered.map((log) => (
+            <div
+              key={log.id}
+              className="grid grid-cols-[1fr_2fr_auto_auto_auto] gap-3 px-4 py-3 hover:bg-slate-50 transition-colors items-start"
+            >
+              <span className="font-mono text-xs font-medium text-slate-700 pt-0.5">
+                {formatPhone(log.phone_number)}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-slate-700 break-words line-clamp-3" title={log.message}>
+                  {log.message}
+                </p>
+                {log.error_message && (
+                  <p className="text-xs text-red-500 mt-0.5 break-words" title={log.error_message}>
+                    {log.error_message}
+                  </p>
+                )}
+              </div>
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(log.status)}`}
+              >
+                {log.status}
+              </span>
+              <span className="text-xs text-slate-500 whitespace-nowrap pt-0.5">
+                {log.points != null ? log.points.toFixed(4) : '—'}
+              </span>
+              <span className="text-xs text-slate-400 whitespace-nowrap pt-0.5">
+                {formatDate(log.created_at)}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>
