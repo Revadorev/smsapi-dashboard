@@ -9,6 +9,7 @@ interface Props {
 
 export default function ShortLinkGenerator({ onInsert }: Props) {
   const [url, setUrl] = useState('')
+  const [alias, setAlias] = useState('')
   const [shortUrl, setShortUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -18,18 +19,11 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
     try {
       const u = new URL(input.trim())
       if (!u.hostname.includes('emag.ro')) return null
-
-      // Dacă e deja link de review, îl returnăm ca atare
       if (u.pathname.includes('/review/add')) return input.trim()
-
-      // Extragem slug-ul și PD codul din URL-ul de produs
-      // Format: /slug/pd/PDCODE/ sau /slug/pd/PDCODE
-      const match = u.pathname.match(/^(\/.*)\/pd\/([A-Z0-9]+)/i)
+      const match = u.pathname.match(/^(\/.*?)\/pd\/([A-Z0-9]+)/i)
       if (!match) return null
-
-      const slug = match[1]  // ex: /irigator-bucal-...
-      const pd = match[2]    // ex: DQFLL43BM
-
+      const slug = match[1]
+      const pd = match[2]
       return `https://www.emag.ro/product-feedback${slug}/pd/${pd}/review/add?ref=review-box_add-review_btn`
     } catch {
       return null
@@ -44,15 +38,14 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
     try {
       const reviewUrl = buildReviewUrl(url)
       if (!reviewUrl) {
-        setError('URL invalid. Introduceți un link de produs eMAG.')
+        setError('URL invalid. Introduceti un link de produs eMAG.')
         setLoading(false)
         return
       }
-
       const res = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: reviewUrl }),
+        body: JSON.stringify({ url: reviewUrl, alias: alias.trim() || undefined }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -61,7 +54,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
         setShortUrl(data.short_url)
       }
     } catch {
-      setError('Eroare de rețea.')
+      setError('Eroare de retea.')
     } finally {
       setLoading(false)
     }
@@ -73,27 +66,20 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      generate()
-    }
-  }
-
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Link2 className="w-4 h-4 text-indigo-500" />
-        <span className="text-sm font-medium text-slate-700">Generează link recenzie eMAG</span>
+        <span className="text-sm font-medium text-slate-700">Genereaza link recenzie eMAG</span>
       </div>
 
-      {/* Input + buton */}
+      {/* URL produs */}
       <div className="flex gap-2">
         <input
           type="url"
           value={url}
           onChange={(e) => { setUrl(e.target.value); setShortUrl(''); setError('') }}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), generate())}
           placeholder="https://www.emag.ro/produs.../pd/XXXXXXX/"
           className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white placeholder:text-slate-400"
           disabled={loading}
@@ -104,14 +90,24 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
           disabled={loading || !url.trim()}
           className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Link2 className="w-4 h-4" />
-          )}
-          {loading ? 'Se generează...' : 'Scurtează'}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+          {loading ? 'Se genereaza...' : 'Scurteaza'}
         </button>
       </div>
+
+      {/* Alias */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-slate-500 font-mono whitespace-nowrap">emagkid.ro/</span>
+        <input
+          type="text"
+          value={alias}
+          onChange={(e) => { setAlias(e.target.value); setShortUrl(''); setError('') }}
+          placeholder="alias (optional, ex: irigator-bucal)"
+          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white placeholder:text-slate-400"
+          disabled={loading}
+        />
+      </div>
+      <p className="text-xs text-slate-400 -mt-1">Lasa gol pentru alias generat automat</p>
 
       {/* Eroare */}
       {error && (
@@ -132,26 +128,11 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
             {shortUrl}
           </a>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <a
-              href={shortUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Deschide"
-            >
+            <a href={shortUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-slate-600" title="Deschide">
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
-            <button
-              type="button"
-              onClick={copy}
-              className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Copiază"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-green-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
+            <button type="button" onClick={copy} className="p-1.5 text-slate-400 hover:text-slate-600" title="Copiaza">
+              {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
             {onInsert && (
               <button
@@ -159,7 +140,7 @@ export default function ShortLinkGenerator({ onInsert }: Props) {
                 onClick={() => onInsert(shortUrl)}
                 className="ml-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-md transition-colors"
               >
-                Inserează în mesaj
+                Insereaza in mesaj
               </button>
             )}
           </div>
