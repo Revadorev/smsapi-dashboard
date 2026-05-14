@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     // Salvează în Supabase
     try {
       const db = createServerClient()
-      await db.from('awb_logs').insert({
+      const { error: insErr } = await db.from('awb_logs').insert({
         awb_number: awbNumber,
         recipient_name: name,
         recipient_phone: phone,
@@ -159,8 +159,10 @@ export async function POST(req: NextRequest) {
         weight: weight || 1,
         cost: awbCost || null,
       })
-    } catch (_) {
+      if (insErr) console.error('[awb_logs insert]', insErr)
+    } catch (e) {
       // non-fatal — AWB e creat, doar logul a eșuat
+      console.error('[awb_logs insert exception]', e)
     }
 
     return NextResponse.json({
